@@ -1,7 +1,23 @@
+"""!
+@file motordriver.py
+This file configures Nucleo pins, timers, and channels for so that it can send voltage to a motor.
+Can send a PWM duty cycle to the motor to control how fast the motor spins. Uses a L6206 motor shield to control motor direction.
+@author Jacob Wong
+@author Wyatt Conner
+@author Jameson Spitz
+@date   26-Jan-22
+@copyright by Jameson Spitz all rights reserved
+"""
+
 import pyb
 import time
 
 class MotorDriver():
+    
+    """!
+    Initializes motor pins allowing for the motor to rotate in both directions. Can initialize multiple motors
+    because each motor object will have its own pins, timers, and channels.
+    """
     
 # Motor 1 (tim3)
 # p1 = pyb.Pin.board.PB4
@@ -14,56 +30,52 @@ class MotorDriver():
     
     def __init__(self, pin1, pin2, pin_enable, timer):
         
+        """!
+        Initialize pins, timers and chanels.
+        @param pin1 First pin connected to motor.
+        @param pin2 Second pin connected to motor.
+        @param pin_enable Enables motor to have a duty cycle set.
+        @param timer Timer number specified from datasheet for pins used.
+        """
+        
+        ## pinIN1A Set as output pin and connected to Motor 
         self.pinIN1A = pyb.Pin(pin1, pyb.Pin.OUT_PP)
+        
+        ## pinIN2A Set as output pin and connected to Motor
         self.pinIN2A = pyb.Pin(pin2, pyb.Pin.OUT_PP)
 
-        # pinIN1B = pyb.Pin(pyb.Pin.board.PA0, pyb.Pin.OUT_PP)
-        # pinIN2B = pyb.Pin(pyb.Pin.board.PA1, pyb.Pin.OUT_PP)
-
+        ## pinENOCDA Set as PULL_UP pin to enable motor
         self.pinENOCDA = pyb.Pin(pin_enable, pyb.Pin.IN, pull = pyb.Pin.PULL_UP)
-        # pinENOCDB = pyb.Pin(pyb.Pin.board.PC1, pyb.Pin.IN, pull = pyb.Pin.PULL_UP)
 
+        ## tim3 is the timer for motor control
         self.tim3 = pyb.Timer(timer, freq = 20000)
-        # tim5 = pyb.Timer(5, freq = 20000)
 
+        ## t3ch1 Sets input pin1 on timer 3 channel 1 to control PWM
         self.t3ch1 = self.tim3.channel(1, pyb.Timer.PWM, pin = self.pinIN1A)
+        
+        ## t3ch2 Sets input pin1 on timer 3 channel 2 to control PWM
         self.t3ch2 = self.tim3.channel(2, pyb.Timer.PWM, pin = self.pinIN2A)
-        # t5ch1 = tim5.channel(1, pyb.Timer.PWM, pin = pinIN1B)
-        # t5ch2 = tim5.channel(2, pyb.Timer.PWM, pin = pinIN2B)
 
     def set_duty_cycle(self, duty):
         
-        ''' @brief              Accepts a duty cycle percentage and sets it as a pwm to nucleo pins
-            @details            Sets the duty to move either encoder 1 or encoder 2 backwards or forwards
-            @param              Duty is a percentage of how much power a user wants to run the motor at
-            @param              enc is a shared variable that specifies which motor to set duty for
-        '''
+        """!
+        Accepts a duty cycle percentage and sets it as a pwm to nucleo channels.
+        Sets the duty to move motor backwards or forwards.
+        @param Duty is the PWM a user wants to run the motor at.
+        """
         
+        # Make motor rotate forwards if positive duty cycle
         if (duty > 0):
                 self.t3ch1.pulse_width_percent(0)
-                self.t3ch2.pulse_width_percent(abs(duty)) 
+                self.t3ch2.pulse_width_percent(abs(duty))
                 
+        # Make motor rotate backwards if negative duty cycle       
         elif (duty <= 0):
                 self.t3ch1.pulse_width_percent(abs(duty))
                 self.t3ch2.pulse_width_percent(0)
                 
         print('Duty: ', duty)
                 
-    def enable (self):
-        
-        ''' @brief              Enables motor to move
-            @details            Disables any previous fault condition and sets nSLEEP to high to enable motor
-        '''
-        
-        self.pinENOCDA.high()
-        
-    def disable (self):
-        
-        ''' @brief              Disables motor, preventing movement
-            @details            Sets nSLEEP to low to disable motor
-        '''
-        
-        self.pinENOCDA.low()
                 
 if __name__ == "__main__":
     motor1 = MotorDriver(pyb.Pin.board.PB4, pyb.Pin.board.PB5, pyb.Pin.board.PA10, 3)
